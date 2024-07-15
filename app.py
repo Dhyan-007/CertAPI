@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 import requests
 import os
 from dotenv import load_dotenv
@@ -90,6 +90,10 @@ def get_connection_details():
         return jsonify(connection_details), 200
     else:
         return jsonify({'error': 'Connection name is invalid'}), 404
+    
+@app.route('/api/docs')
+def get_docs():
+    return send_from_directory('.', 'openapi.yaml')
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 8080))

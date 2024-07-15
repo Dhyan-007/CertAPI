@@ -1,0 +1,90 @@
+openapi: 3.0.0
+info:
+  title: Certificate API
+  version: 1.0.0
+  description: A simple API to fetch SSL certificate details
+servers:
+  - url: https://certapi.onrender.com
+paths:
+  /api/get_connection_details:
+    get:
+      summary: Fetch connection details
+      description: Retrieves the SSL certificate details for the specified connection name
+      parameters:
+        - in: query
+          name: connectionName
+          required: true
+          schema:
+            type: string
+          description: The connection name
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Connection'
+        '400':
+          description: Bad Request - Connection name is required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not Found - Connection name is invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  schemas:
+    Connection:
+      type: object
+      properties:
+        connectionName:
+          type: string
+          description: The connection name
+        certificate_names:
+          type: array
+          description: List of certificate names
+          items:
+            type: string
+        ownedCompanyName:
+          type: string
+          description: The company that owns the certificate
+        belongsTo:
+          type: string
+          description: The owner of the certificate
+        environment_CTE:
+          type: string
+          description: CTE environment
+        environment_PROD:
+          type: string
+          description: PROD environment
+        daysLeftToExpire_CTE:
+          type: string
+          description: Days left for CTE environment certificate to expire
+        daysLeftToExpire_PROD:
+          type: string
+          description: Days left for PROD environment certificate to expire
+        expirationDateTime_CTE:
+          type: string
+          description: Expiration date and time for CTE environment certificate
+        expirationDateTime_PROD:
+          type: string
+          description: Expiration date and time for PROD environment certificate
+        expiredCertName_CTE:
+          type: string
+          description: Expired certificate name in CTE environment
+        expiredCertName_PROD:
+          type: string
+          description: Expired certificate name in PROD environment
+        protocol:
+          type: string
+          description: The protocol used
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
