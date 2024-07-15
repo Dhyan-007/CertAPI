@@ -92,4 +92,5 @@ def get_connection_details():
         return jsonify({'error': 'Connection name is invalid'}), 404
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.getenv('PORT', 8080))
+    app.run(host='0.0.0.0', port=port, debug=True)
