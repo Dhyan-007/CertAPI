@@ -96,5 +96,6 @@ def get_docs():
     return send_from_directory('.', 'openapi.yaml')
 
 if __name__ == '__main__':
-    port = int(os.getenv('PORT', 8080))
-    app.run(host='0.0.0.0', port=port, debug=True)
+    port = int(os.getenv('PORT'))
+    host = os.getenv('HOST')
+    app.run(host=host, port=port, debug=True)
