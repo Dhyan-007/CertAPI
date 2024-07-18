@@ -70,7 +70,7 @@ def customer_as2_connections():
     output_file = 'output.xlsx'
     result_df = pd.DataFrame()
 
-    as2_connections_directory = '/Users/dhyan/Documents/Tasks/HTTP_API_Server/static'
+    as2_connections_directory = get_static_directory()
     for filename in os.listdir(as2_connections_directory):
         filePath = os.path.join(as2_connections_directory, filename)
         df = pd.read_excel(filePath)
@@ -104,7 +104,7 @@ def get_cutomer_as2_connections():
     output_file = 'output.xlsx'
     result_df = pd.DataFrame()
 
-    as2_connections_directory = '/Users/dhyan/Documents/Tasks/HTTP_API_Server/static'
+    as2_connections_directory = get_static_directory()
     for filename in os.listdir(as2_connections_directory):
         filePath = os.path.join(as2_connections_directory, filename)
         df = pd.read_excel(filePath)
