@@ -1,99 +1,105 @@
-from flask import Flask, request, jsonify, send_from_directory
-import requests
-import os
+from flask import Flask, request, jsonify, session, send_file
+from flask_migrate import Migrate
 from dotenv import load_dotenv
+from extensions import db, bcrypt
+from models import User
+import pandas as pd
+import os
 
 load_dotenv()
 
 app = Flask(__name__)
+app.secret_key = os.getenv('SECRET_KEY')
 
-def find_connection_details(connection_name):
-    url = "https://confighub.b2b.ibm.com/ssauth/api/jwt/login"
-    headers = {"Content-Type": "application/json"}
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DB_URL')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-    username = os.getenv('API_USERNAME')
-    password = os.getenv('API_PASSWORD')
+db.init_app(app)
+bcrypt.init_app(app)
+migrate = Migrate(app, db)
 
-    data = {"username": username, "password": password}
+@app.route('/register', methods=['POST'])
+def register():
+    data = request.json
+    username = data.get('username')
+    password = data.get('password')
 
-    response = requests.post(url, json=data, headers=headers)
-    token = response.cookies["refresh_token"]
+    if not username or not password:
+        return jsonify({'message': 'Username and password are required!'}), 400
 
-    authori = "Bearer " + token +"" 
+    existing_user = User.query.filter_by(username=username).first()
+    if existing_user:
+        return jsonify({'message': 'User already exists!'}), 400
 
-    base_url = 'https://confighub.b2b.ibm.com/ssapigateway/api/listexpiringsslcertificates'
-    query_string1 = 'Accept = application/json'
-    query_string2 = 'expirationDays=400d'
+    new_user = User(username=username)
+    new_user.set_password(password)
+    db.session.add(new_user)
+    db.session.commit()
 
-    url = base_url + '?' + query_string1 +'&' + query_string2
-    headers = {'Authorization': authori}
+    return jsonify({'message': 'User registered successfully!'}), 201
 
-    r = requests.get(url, headers=headers)
-    data=r.json()['data']
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.json
+    username = data.get('username')
+    password = data.get('password')
 
-    all_connection_data = []
+    user = User.query.filter_by(username=username).first()
+    if user and user.check_password(password):
+        session['username'] = username
+        print("Company Name: ", username)
+        return jsonify({'message': 'Login successful!'}), 200
+    return jsonify({'message': 'Invalid username or password!'}), 401
 
-    connection_names = []
-    for item in data:
-            connection_names_list = []
-            for connection in item['usedByConnections']:
-                if connection['connectionName'] not in connection_names:
-                    connection_names.append(connection['connectionName'])
-                connection_names_list.append(connection['connectionName'])
-            item['connection_names_list'] = connection_names_list
+@app.route('/customer/as2_connections', methods=['GET'])
+def customer_as2_connections():
+    if 'username' not in session:
+        return jsonify({'message': 'User not logged in!'}), 401
 
-    for connectionName in connection_names:
-        new_record = {
-            "connectionName": connectionName,
-            "certificate_names": []
-        }
-        not_seen = {"CTE": True, "PROD": True}
-        for item in data:
-            if connectionName in item['connection_names_list']:
-                new_record["certificate_names"].append(item['sslCertName'])
-                if new_record.get('ownedCompanyName') is None:
-                    new_record['ownedCompanyName'] = item['ownedCompanyName']
-                if new_record.get('belongsTo') is None:
-                    new_record['belongsTo'] = item['belongsTo']
-                for connection in item['usedByConnections']:
-                    if connection['connectionName'] == connectionName and not_seen[connection['environment']]:
-                            env = connection['environment']
-                            new_record[f'expiredCertName_{env}'] = item['sslCertName'] 
-                            new_record[f'environment_{env}'] = env
-                            if connection.get('protocol') is None:
-                                new_record['protocol'] = "API"
-                            elif new_record.get('protocol') is None:
-                                new_record['protocol'] = connection['protocol']
-                            new_record[f'sslCertVersion_{env}'] =  connection['sslCertVersion']
-                            new_record[f'daysLeftToExpire_{env}'] = connection['daysLeftToExpire']
-                            new_record[f'expirationDateTime_{env}'] = connection['expirationDateTime']
-                            not_seen[env] = False
-        all_connection_data.append(new_record)
+    companyName = session['username']
+    partnerName = request.args.get('partnerName')
 
-    for conn in all_connection_data:
-        if conn["connectionName"] == connection_name:
-            return conn
+    if not partnerName:
+        return jsonify({'message': 'Partner name is required!'}), 400
+
+    output_file = 'output.xlsx'
+    result_df = pd.DataFrame()
+
+    as2_connections_directory = '/Users/dhyan/Documents/Tasks/HTTP_API_Server/static'
+    for filename in os.listdir(as2_connections_directory):
+        filePath = os.path.join(as2_connections_directory, filename)
+        df = pd.read_excel(filePath)
+        df['Description_Lower'] = df['Description'].astype(str).str.lower()
+        partnerName_lower = partnerName.lower()
+        filtered_df = df[(df['Company_Name'] == companyName) & (df['Description_Lower'].str.contains(partnerName_lower, na=False))]
+        filtered_df = filtered_df.drop(columns=['Description_Lower'])
+        result_df = pd.concat([result_df, filtered_df], ignore_index=True)
     
-    return None
-
-
-@app.route('/api/get_connection_details', methods=['GET'])
-def get_connection_details():
-    connection_name = request.args.get('connectionName')
-    
-    if not connection_name:
-        return jsonify({'error': 'Connection name is required'}), 400
-    
-    connection_details = find_connection_details(connection_name)
-
-    if connection_details:
-        return jsonify(connection_details), 200
+    if result_df.empty:
+            return jsonify({'message': 'Connection details not found!'}), 404
     else:
-        return jsonify({'error': 'Connection name is invalid'}), 404
+        result_df.to_excel(output_file, index=False)
+        return send_file(output_file, as_attachment=True, download_name='output.xlsx')
     
-@app.route('/api/docs')
-def get_docs():
-    return send_from_directory('.', 'openapi.yaml')
+@app.route('/internal/customer_as2_connections', methods=['GET'])
+def get_cutomer_as2_connections():
+    as2_url = request.args.get('as2Url')
+
+    output_file = 'output.xlsx'
+    result_df = pd.DataFrame()
+
+    as2_connections_directory = '/Users/dhyan/Documents/Tasks/HTTP_API_Server/static'
+    for filename in os.listdir(as2_connections_directory):
+        filePath = os.path.join(as2_connections_directory, filename)
+        df = pd.read_excel(filePath)
+        filtered_df = df[(df['Receiver'] == as2_url) | (df['Destination'] == as2_url)]
+        result_df = pd.concat([result_df, filtered_df], ignore_index=True)
+    
+    if result_df.empty:
+            return jsonify({'message': 'Connection details not found!'}), 404
+    else:
+        result_df.to_excel(output_file, index=False)
+        return send_file(output_file, as_attachment=True, download_name='output.xlsx')
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT'))
