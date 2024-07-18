@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from extensions import db, bcrypt
 from models import User
 import pandas as pd
+from functools import reduce
 import os
 
 load_dotenv()
@@ -83,7 +84,18 @@ def customer_as2_connections():
     
 @app.route('/internal/customer_as2_connections', methods=['GET'])
 def get_cutomer_as2_connections():
-    as2_url = request.args.get('as2Url')
+    as2_url_destination = request.args.get('as2UrlDestination', '')
+    as2_id_tp = request.args.get('as2IdTp', '')
+
+    params = {
+        'Destination': as2_url_destination,
+        'AS2_ID_TP': as2_id_tp
+    }
+
+    params = {k:v for k, v in params.items() if v}
+
+    if not params:
+        return jsonify({'message': 'Please enter one of the fields!'}), 400
 
     output_file = 'output.xlsx'
     result_df = pd.DataFrame()
@@ -92,7 +104,13 @@ def get_cutomer_as2_connections():
     for filename in os.listdir(as2_connections_directory):
         filePath = os.path.join(as2_connections_directory, filename)
         df = pd.read_excel(filePath)
-        filtered_df = df[(df['Receiver'] == as2_url) | (df['Destination'] == as2_url)]
+        if len(params) == 1:
+            column_name, param = next(iter(params.items()))
+            filtered_df = df[(df[column_name] == param)]
+        else:
+            conditions = [(df[column_name] == param) for column_name, param in params.items()]
+            combined_condition = reduce(lambda x, y: x & y, conditions)
+            filtered_df = df[combined_condition]
         result_df = pd.concat([result_df, filtered_df], ignore_index=True)
     
     if result_df.empty:
