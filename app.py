@@ -19,6 +19,10 @@ db.init_app(app)
 bcrypt.init_app(app)
 migrate = Migrate(app, db)
 
+def get_static_directory():
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
+
+
 @app.route('/register', methods=['POST'])
 def register():
     data = request.json
