@@ -120,9 +120,7 @@ def get_cutomer_as2_connections():
     if result_df.empty:
             return jsonify({'message': 'Connection details not found!'}), 404
     else:
-        result_dict = {
-            'hwtable': result_df.to_dict(orient='records')
-        }
+        result_dict = result_df.to_dict(orient='records')
         return jsonify(result_dict)
 
 
