@@ -120,14 +120,10 @@ def get_cutomer_as2_connections():
     if result_df.empty:
             return jsonify({'message': 'Connection details not found!'}), 404
     else:
-        output = StringIO()
-        result_df.to_csv(output, index=False)
-        output.seek(0)
-
-        response = make_response(output.getvalue())
-        response.headers["Content-Disposition"] = "attachment; filename=output.csv"
-        response.headers["Content-Type"] = "text/csv"
-        return response
+        result_dict = {
+            'hwtable': result_df.to_dict(orient='records')
+        }
+        return jsonify(result_dict)
 
 
 if __name__ == '__main__':

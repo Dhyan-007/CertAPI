@@ -33,7 +33,7 @@ paths:
         '200':
           description: Successful retrieval of the AS2 connection details.
           content:
-            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+            text/csv:
               schema:
                 type: string
                 format: binary
