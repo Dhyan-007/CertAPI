@@ -33,10 +33,78 @@ paths:
         '200':
           description: Successful retrieval of the AS2 connection details.
           content:
-            text/csv:
+            application/json:
               schema:
-                type: string
-                format: binary
+                type: array
+                items:
+                  type: object
+                  properties:
+                    Company_Name:
+                      type: string
+                      example: Acme Corp
+                    Relationship_Type:
+                      type: string
+                      example: Partner
+                    Pod_Name:
+                      type: string
+                      example: PodA
+                    Business_Alias:
+                      type: string
+                      example: AcmeAlias
+                    AS2ID_Customer:
+                      type: string
+                      example: AS2ID123
+                    Receiver:
+                      type: string
+                      example: ReceiverName
+                    Decryption_Customer:
+                      type: string
+                      example: DecryptionCert
+                    Decryption_Exp_C:
+                      type: string
+                      example: 2024-12-31
+                    Signing_Cert_Customer:
+                      type: string
+                      example: SigningCert
+                    Signing_Exp_C:
+                      type: string
+                      example: 2024-12-31
+                    SSL_Client_Auth_Key_C:
+                      type: string
+                      example: SSLKey
+                    SSL_Key_Exp_C:
+                      type: string
+                      example: 2024-12-31
+                    Remote_Business_Alias:
+                      type: string
+                      example: RemoteAlias
+                    AS2_ID_TP:
+                      type: string
+                      example: AS2IDTP123
+                    Destination:
+                      type: string
+                      example: DestinationURL
+                    Encryption_Cert_TP:
+                      type: string
+                      example: EncryptionCert
+                    EncryptionExp:
+                      type: string
+                      example: 2024-12-31
+                    Sign_Valid_Cert_TP:
+                      type: string
+                      example: SignCert
+                    Sign_Valid_Exp_TP:
+                      type: string
+                      example: 2024-12-31
+                    Description:
+                      type: string
+                      example: Connection details
+                    Protocol_Profile_ID:
+                      type: string
+                      example: ProtocolID123
+                    Environment_Loc:
+                      type: string
+                      example: Production
         '400':
           description: Missing required parameters.
           content:

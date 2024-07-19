@@ -120,8 +120,8 @@ def get_cutomer_as2_connections():
     if result_df.empty:
             return jsonify({'message': 'Connection details not found!'}), 404
     else:
-        result_dict = result_df.to_dict(orient='records')
-        return jsonify(result_dict)
+        result_json = result_df.to_json(orient='records')
+        return result_json
 
 
 if __name__ == '__main__':
