@@ -1,4 +1,5 @@
-from flask import Flask, request, jsonify, session, send_file
+from io import StringIO
+from flask import Flask, make_response, request, jsonify, session, send_file
 from flask_migrate import Migrate
 from dotenv import load_dotenv
 from extensions import db, bcrypt
@@ -101,7 +102,6 @@ def get_cutomer_as2_connections():
     if not params:
         return jsonify({'message': 'Please enter one of the fields!'}), 400
 
-    output_file = 'output.xlsx'
     result_df = pd.DataFrame()
 
     as2_connections_directory = get_static_directory()
@@ -120,8 +120,15 @@ def get_cutomer_as2_connections():
     if result_df.empty:
             return jsonify({'message': 'Connection details not found!'}), 404
     else:
-        result_df.to_excel(output_file, index=False)
-        return send_file(output_file, as_attachment=True, download_name='output.xlsx')
+        output = StringIO()
+        result_df.to_csv(output, index=False)
+        output.seek(0)
+
+        response = make_response(output.getvalue())
+        response.headers["Content-Disposition"] = "attachment; filename=output.csv"
+        response.headers["Content-Type"] = "text/csv"
+        return response
+
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT'))
